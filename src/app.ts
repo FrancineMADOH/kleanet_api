@@ -1,4 +1,5 @@
 import Fastify, { FastifyInstance } from 'fastify';
+import swaggerPlugin from './plugins/swagger';
 
 /**
  * Builds and returns a configured Fastify application instance.
@@ -13,6 +14,9 @@ export function buildApp(): FastifyInstance {
       level: process.env.NODE_ENV === 'production' ? 'warn' : 'info',
     },
   });
+
+  // Swagger must be registered before routes so all schemas are captured
+  fastify.register(swaggerPlugin);
 
   // ----------------------------------------------------------------
   // Health check — used by load balancers and Docker health checks
