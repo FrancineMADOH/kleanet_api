@@ -1,6 +1,8 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import swaggerPlugin from './plugins/swagger';
 import odooPlugin from './shared/odoo/odoo-client';
+import jwtPlugin from './plugins/jwt';
+import { authGuard } from './shared/guards/auth.guard';
 
 /**
  * Builds and returns a configured Fastify application instance.
@@ -20,6 +22,8 @@ export function buildApp(): FastifyInstance {
   fastify.register(swaggerPlugin);
   // Odoo client available as fastify.odoo throughout the app
   fastify.register(odooPlugin);
+  // JWT available as fastify.jwt throughout the app
+  fastify.register(jwtPlugin);
 
   // ----------------------------------------------------------------
   // Health check — used by load balancers and Docker health checks
@@ -44,6 +48,61 @@ export function buildApp(): FastifyInstance {
       },
     },
     async () => ({ pong: true }),
+  );
+
+  // ----------------------------------------------------------------
+  // Test routes — removed in QUALITY-02
+  // ----------------------------------------------------------------
+  fastify.get(
+    '/test/public',
+    {
+      schema: {
+        tags: ['System'],
+        summary: 'Public test route',
+        description: 'Always returns 200. No authentication required.',
+        response: {
+          200: {
+            type: 'object',
+            properties: { ok: { type: 'boolean' } },
+            required: ['ok'],
+            additionalProperties: false,
+          },
+        },
+      },
+    },
+    async () => ({ ok: true }),
+  );
+
+  fastify.get(
+    '/test/private',
+    {
+      preHandler: authGuard,
+      schema: {
+        tags: ['System'],
+        summary: 'Private test route',
+        description: 'Requires a valid Bearer JWT. Returns partner_id from the token.',
+        security: [{ BearerAuth: [] }],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              ok: { type: 'boolean' },
+              partner_id: { type: 'number' },
+            },
+            required: ['ok', 'partner_id'],
+            additionalProperties: false,
+          },
+          401: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (request) => ({ ok: true, partner_id: request.user.partner_id }),
   );
 
   return fastify;
