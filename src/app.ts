@@ -2,6 +2,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import swaggerPlugin from './plugins/swagger';
 import odooPlugin from './shared/odoo/odoo-client';
 import jwtPlugin from './plugins/jwt';
+import redisPlugin from './plugins/redis';
 import { authGuard } from './shared/guards/auth.guard';
 
 /**
@@ -24,6 +25,8 @@ export function buildApp(): FastifyInstance {
   fastify.register(odooPlugin);
   // JWT available as fastify.jwt throughout the app
   fastify.register(jwtPlugin);
+  // Redis client available as fastify.redis throughout the app
+  fastify.register(redisPlugin);
 
   // ----------------------------------------------------------------
   // Health check — used by load balancers and Docker health checks
