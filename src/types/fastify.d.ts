@@ -11,6 +11,8 @@ export interface JwtPayload {
   partner_id: number;
   phone?: string;
   email?: string;
+  /** JWT ID — present only in refresh tokens to allow per-token revocation. */
+  jti?: string;
 }
 
 // ----------------------------------------------------------------
