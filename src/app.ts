@@ -1,5 +1,6 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import swaggerPlugin from './plugins/swagger';
+import odooPlugin from './shared/odoo/odoo-client';
 
 /**
  * Builds and returns a configured Fastify application instance.
@@ -17,6 +18,8 @@ export function buildApp(): FastifyInstance {
 
   // Swagger must be registered before routes so all schemas are captured
   fastify.register(swaggerPlugin);
+  // Odoo client available as fastify.odoo throughout the app
+  fastify.register(odooPlugin);
 
   // ----------------------------------------------------------------
   // Health check — used by load balancers and Docker health checks
