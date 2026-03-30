@@ -1,6 +1,0 @@
-{
-  "statusCode": 500,
-  "code": "0",
-  "error": "Internal Server Error",
-  "message": "Odoo error [0]: Invalid field 'mobile' on 'res.partner'"
-}
