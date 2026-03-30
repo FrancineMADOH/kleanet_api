@@ -143,9 +143,10 @@ Fastify API  ──── 1 seul compte de service Odoo ────▶ Odoo
 | PROFILE-01 | ✅ | `GET /api/v1/profile`, `PATCH /api/v1/profile`, `PATCH /api/v1/profile/location` — GPS + 409 DUPLICATE_ACCOUNT |
 | FEEDBACK-01 | ✅ | `POST /api/v1/feedback` — 403 ownership, 400 ORDER_NOT_DELIVERED, 409 ALREADY_REVIEWED |
 | FAQ-01 | ✅ | `GET /api/v1/faq` — public, cache Redis 1h, filtre `?category_id`, invalidé par DELETE /catalog/cache |
+| QUALITY-01 | ✅ | 50 tests Vitest — 2 unit (otp, orders), 3 intégration (auth, orders, catalog) — 100% passing |
+| QUALITY-02 | ✅ | Helmet, rate-limit sur /auth/phone/send, export:openapi → docs/openapi.json, README.md |
 
-### Next step
-**QUALITY-01** — Tests automatisés (Vitest)
+### API complète — toutes les features livrées
 
 ### Key files
 ```
@@ -207,6 +208,8 @@ src/
 - **Odoo `session_id` is in `Set-Cookie` header**, not the JSON body — extract with `response.headers.get('set-cookie')`
 - **`res.partner` has no `mobile` field** on this Odoo instance — search by `phone` only
 - **Routes plugins must NOT use `fp()` (fastify-plugin)** — `fp` disables scope isolation and the `prefix` option is ignored; only decorator plugins (redis, jwt, odoo) use `fp`
+- **Fastify validates body BEFORE running preHandlers** — a route with `authGuard` + required body schema returns 400 (not 401) if the body is missing; tests must include the required body fields to reach the guard
+- **Vitest setupFiles must set env vars** — `src/config/env.ts` calls `process.exit(1)` on invalid env at module load; set all required vars in `tests/helpers/test-env.ts` referenced by `vitest.config.ts`
 
 ### Environment variables
 ```

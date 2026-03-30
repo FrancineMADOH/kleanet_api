@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import {
   sendOtpSchema,
   verifyOtpSchema,
@@ -29,6 +30,20 @@ import type { SendOtpInput, VerifyOtpInput } from './auth.types';
  * POST /logout       — revokes the refresh token (protected)
  */
 async function authRoutes(fastify: FastifyInstance): Promise<void> {
+  // HTTP-level rate limit on the OTP send endpoint — 5 requests per minute per IP.
+  // This is a first line of defence; the service layer adds a per-phone soft limit
+  // (3 requests per 10 minutes stored in Redis) as a second layer.
+  await fastify.register(rateLimit, {
+    max: 5,
+    timeWindow: '1 minute',
+    // Apply only to POST /phone/send inside this plugin scope
+    keyGenerator: (request) => request.ip,
+    errorResponseBuilder: () => ({
+      error: 'TOO_MANY_REQUESTS',
+      message: 'Rate limit exceeded. Please wait before requesting another OTP.',
+    }),
+  });
+
   // ----------------------------------------------------------------
   // POST /phone/send
   // ----------------------------------------------------------------

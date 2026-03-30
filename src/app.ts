@@ -1,4 +1,5 @@
 import Fastify, { FastifyInstance } from 'fastify';
+import helmet from '@fastify/helmet';
 import swaggerPlugin from './plugins/swagger';
 import odooPlugin from './shared/odoo/odoo-client';
 import jwtPlugin from './plugins/jwt';
@@ -11,7 +12,6 @@ import subscriptionRoutes from './modules/subscription/subscription.routes';
 import profileRoutes from './modules/profile/profile.routes';
 import feedbackRoutes from './modules/feedback/feedback.routes';
 import faqRoutes from './modules/faq/faq.routes';
-import { authGuard } from './shared/guards/auth.guard';
 
 /**
  * Builds and returns a configured Fastify application instance.
@@ -26,6 +26,11 @@ export function buildApp(): FastifyInstance {
       level: process.env.NODE_ENV === 'production' ? 'warn' : 'info',
     },
   });
+
+  // Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
+  // contentSecurityPolicy is disabled — this is a JSON API, not an HTML app,
+  // and a strict CSP would break Swagger UI's inline scripts.
+  fastify.register(helmet, { contentSecurityPolicy: false });
 
   // Swagger must be registered before routes so all schemas are captured
   fastify.register(swaggerPlugin);
@@ -68,61 +73,6 @@ export function buildApp(): FastifyInstance {
       },
     },
     async () => ({ pong: true }),
-  );
-
-  // ----------------------------------------------------------------
-  // Test routes — removed in QUALITY-02
-  // ----------------------------------------------------------------
-  fastify.get(
-    '/test/public',
-    {
-      schema: {
-        tags: ['System'],
-        summary: 'Public test route',
-        description: 'Always returns 200. No authentication required.',
-        response: {
-          200: {
-            type: 'object',
-            properties: { ok: { type: 'boolean' } },
-            required: ['ok'],
-            additionalProperties: false,
-          },
-        },
-      },
-    },
-    async () => ({ ok: true }),
-  );
-
-  fastify.get(
-    '/test/private',
-    {
-      preHandler: authGuard,
-      schema: {
-        tags: ['System'],
-        summary: 'Private test route',
-        description: 'Requires a valid Bearer JWT. Returns partner_id from the token.',
-        security: [{ BearerAuth: [] }],
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              ok: { type: 'boolean' },
-              partner_id: { type: 'number' },
-            },
-            required: ['ok', 'partner_id'],
-            additionalProperties: false,
-          },
-          401: {
-            type: 'object',
-            properties: {
-              error: { type: 'string' },
-              message: { type: 'string' },
-            },
-          },
-        },
-      },
-    },
-    async (request) => ({ ok: true, partner_id: request.user.partner_id }),
   );
 
   return fastify;
