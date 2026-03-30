@@ -50,6 +50,52 @@ export const sendOtpSchema = {
 // POST /phone/verify
 // ----------------------------------------------------------------
 
+// ----------------------------------------------------------------
+// POST /google
+// ----------------------------------------------------------------
+
+/** Reusable LoginResponse shape — used by both OTP verify and Google auth. */
+const loginResponseSchema = {
+  type: 'object',
+  properties: {
+    access_token: { type: 'string' },
+    refresh_token: { type: 'string' },
+    partner_id: { type: 'number' },
+    is_new_user: { type: 'boolean' },
+  },
+  required: ['access_token', 'refresh_token', 'partner_id', 'is_new_user'],
+  additionalProperties: false,
+} as const;
+
+/** Fastify route schema for POST /api/v1/auth/google. */
+export const googleAuthSchema = {
+  tags: ['Auth'],
+  summary: 'Login with Google',
+  description:
+    'Verifies a Google id_token obtained by the Flutter app via the Google Sign-In SDK. ' +
+    'Creates a new Odoo partner if the email is not yet registered.',
+  body: {
+    type: 'object',
+    required: ['id_token'],
+    additionalProperties: false,
+    properties: {
+      id_token: {
+        type: 'string',
+        minLength: 1,
+        description: 'Google id_token from the Flutter Google Sign-In SDK',
+      },
+    },
+  },
+  response: {
+    200: loginResponseSchema,
+    401: errorSchema,
+  },
+} as const;
+
+// ----------------------------------------------------------------
+// POST /phone/verify
+// ----------------------------------------------------------------
+
 /** Fastify route schema for POST /api/v1/auth/phone/verify. */
 export const verifyOtpSchema = {
   tags: ['Auth'],
@@ -75,17 +121,7 @@ export const verifyOtpSchema = {
     },
   },
   response: {
-    200: {
-      type: 'object',
-      properties: {
-        access_token: { type: 'string' },
-        refresh_token: { type: 'string' },
-        partner_id: { type: 'number' },
-        is_new_user: { type: 'boolean' },
-      },
-      required: ['access_token', 'refresh_token', 'partner_id', 'is_new_user'],
-      additionalProperties: false,
-    },
+    200: loginResponseSchema,
     400: errorSchema,
   },
 } as const;

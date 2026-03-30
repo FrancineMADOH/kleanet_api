@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from '../../config/env';
 import { generateOtp, storeOtp, verifyOtp } from '../../shared/otp/otp.service';
 import { getSmsProvider } from '../../shared/otp/sms.service';
+import { verifyGoogleToken, GoogleTokenError } from '../../shared/oauth/google.service';
 import type { OtpVerifyResult } from '../../shared/otp/otp.service';
 import type { LoginResponse, SendOtpResult } from './auth.types';
 
@@ -116,6 +117,54 @@ export async function verifyOtpAndLogin(
   };
 }
 
+/**
+ * Verifies a Google id_token and logs in (or registers) the matching Odoo partner.
+ *
+ * Returns 'invalid_token' if the token fails verification or GOOGLE_CLIENT_ID
+ * is not configured. Returns a LoginResponse on success.
+ */
+export async function googleLogin(
+  fastify: FastifyInstance,
+  idToken: string,
+): Promise<'invalid_token' | LoginResponse> {
+  if (!config.GOOGLE_CLIENT_ID) {
+    fastify.log.warn('GOOGLE_CLIENT_ID is not set — Google login is disabled');
+    return 'invalid_token';
+  }
+
+  let profile;
+  try {
+    profile = await verifyGoogleToken(idToken, config.GOOGLE_CLIENT_ID);
+  } catch (err) {
+    if (err instanceof GoogleTokenError) {
+      return 'invalid_token';
+    }
+    throw err;
+  }
+
+  const { partnerId, isNewUser } = await resolvePartnerByEmail(fastify, profile.email, profile.name);
+
+  const accessToken = fastify.jwt.sign(
+    { sub: String(partnerId), partner_id: partnerId, email: profile.email },
+    { expiresIn: config.JWT_EXPIRY },
+  );
+
+  const jti = uuidv4();
+  const refreshToken = fastify.jwt.sign(
+    { sub: String(partnerId), partner_id: partnerId, jti },
+    { expiresIn: config.REFRESH_EXPIRY },
+  );
+
+  await fastify.redis.set(refreshKey(partnerId, jti), '1', 'EX', REFRESH_TTL_SECONDS);
+
+  return {
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    partner_id: partnerId,
+    is_new_user: isNewUser,
+  };
+}
+
 // ----------------------------------------------------------------
 // Private helpers
 // ----------------------------------------------------------------
@@ -126,7 +175,36 @@ interface PartnerResolution {
 }
 
 /**
- * Finds an existing Odoo partner by phone or mobile field.
+ * Finds an existing Odoo partner by email address.
+ * Creates a minimal partner record if none is found.
+ */
+async function resolvePartnerByEmail(
+  fastify: FastifyInstance,
+  email: string,
+  name: string,
+): Promise<PartnerResolution> {
+  const partners = await fastify.odoo.searchRead(
+    'res.partner',
+    [['email', '=', email]],
+    ['id', 'name', 'email', 'phone'],
+    { limit: 1 },
+  );
+
+  if (partners.length > 0) {
+    return { partnerId: partners[0].id, isNewUser: false };
+  }
+
+  const newId = await fastify.odoo.create('res.partner', {
+    name,
+    email,
+    customer_rank: 1,
+  });
+
+  return { partnerId: newId, isNewUser: true };
+}
+
+/**
+ * Finds an existing Odoo partner by phone.
  * Creates a minimal partner record if none is found.
  */
 async function resolvePartner(

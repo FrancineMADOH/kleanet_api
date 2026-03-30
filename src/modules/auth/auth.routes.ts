@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { sendOtpSchema, verifyOtpSchema } from './auth.schema';
-import { sendOtp, verifyOtpAndLogin } from './auth.service';
+import { sendOtpSchema, verifyOtpSchema, googleAuthSchema } from './auth.schema';
+import { sendOtp, verifyOtpAndLogin, googleLogin } from './auth.service';
 import type { SendOtpInput, VerifyOtpInput } from './auth.types';
 
 /**
@@ -8,6 +8,7 @@ import type { SendOtpInput, VerifyOtpInput } from './auth.types';
  *
  * POST /phone/send   — sends OTP to a phone number
  * POST /phone/verify — verifies OTP and returns JWT tokens
+ * POST /google       — verifies Google id_token and returns JWT tokens
  */
 async function authRoutes(fastify: FastifyInstance): Promise<void> {
   // ----------------------------------------------------------------
@@ -49,6 +50,28 @@ async function authRoutes(fastify: FastifyInstance): Promise<void> {
         return reply.code(400).send(
           otpErrorResponse(result as 'invalid' | 'expired' | 'max_attempts'),
         );
+      }
+
+      return reply.code(200).send(result);
+    },
+  );
+
+  // ----------------------------------------------------------------
+  // POST /google
+  // ----------------------------------------------------------------
+  fastify.post<{ Body: { id_token: string } }>(
+    '/google',
+    { schema: googleAuthSchema },
+    async (request, reply) => {
+      const { id_token } = request.body;
+
+      const result = await googleLogin(fastify, id_token);
+
+      if (result === 'invalid_token') {
+        return reply.code(401).send({
+          error: 'INVALID_GOOGLE_TOKEN',
+          message: 'Invalid or expired Google token.',
+        });
       }
 
       return reply.code(200).send(result);
