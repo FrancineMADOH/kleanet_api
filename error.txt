@@ -2,20 +2,5 @@
   "statusCode": 500,
   "code": "0",
   "error": "Internal Server Error",
-  "message": "Odoo error [0]: You are not allowed to access 'Laundry Garment Type' (laundry.garment.type) records.\n\nThis operation is allowed for the following groups:\n\t- Laundry Manager\n\t- Laundry User\n\nContact your administrator to request access if necessary."
-}
-
-
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMSIsInBhcnRuZXJfaWQiOjExLCJwaG9uZSI6IisyMzc2MTIzNDU2NzgiLCJpYXQiOjE3NzQ4NjM4MTgsImV4cCI6MTc3NDg2NTYxOH0.UjXLgOIMDG2z7qn9whTnPAYDKRt53YeZP463TQpABRI",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMSIsInBhcnRuZXJfaWQiOjExLCJqdGkiOiJhNTZkNzYxMC05YjZkLTQzZjktYWI3ZS04NzY2YjdhMjA1NDciLCJpYXQiOjE3NzQ4NjM4MTgsImV4cCI6MTc3NzQ1NTgxOH0.ib9CpLwP9UuWRo6XtDs5yagDxez-QR5pARupbMh_tD8",
-  "partner_id": 11,
-  "is_new_user": false
-}
-
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMyIsInBhcnRuZXJfaWQiOjEzLCJwaG9uZSI6IisyMzc2MTIzNDU2NzkiLCJpYXQiOjE3NzQ4Nzc3MTEsImV4cCI6MTc3NDg3OTUxMX0.jfDhw_eDQx73WZ3xWkUotuoFg_0jj4wNCfsLhXO_loo",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMyIsInBhcnRuZXJfaWQiOjEzLCJqdGkiOiIzMmJkYzU5My02NTQ3LTQ3NjMtYTQzYS1iNDQ5NzQ2MWRmZTYiLCJpYXQiOjE3NzQ4Nzc3MTEsImV4cCI6MTc3NzQ2OTcxMX0.yWXLG4J_biNEJCrdrRQK7dKEcSj14FyLRVJM3fZt70Y",
-  "partner_id": 13,
-  "is_new_user": true
+  "message": "Odoo error [0]: Invalid field 'mobile' on 'res.partner'"
 }

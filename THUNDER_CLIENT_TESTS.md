@@ -348,6 +348,91 @@ Valeurs possibles pour `status` : `pending` `received` `processing` `ready_for_p
 
 ---
 
+## PROFILE — Routes protégées
+
+### 17. Consulter mon profil
+
+**GET** `http://localhost:3000/api/v1/profile`
+
+- Auth : **Bearer token** requis
+- Body : aucun
+- Réponse :
+```json
+{
+  "id": 42,
+  "name": "Jean Dupont",
+  "phone": "+237612345678",
+  "delivery_location": null
+}
+```
+> `delivery_location` vaut `null` tant que `PATCH /profile/location` n'a pas été appelé.
+
+---
+
+### 18. Mettre à jour mon profil
+
+**PATCH** `http://localhost:3000/api/v1/profile`
+
+- Auth : **Bearer token** requis
+- Body (JSON) — au moins un champ requis :
+```json
+{ "name": "Jean Dupont" }
+```
+ou :
+```json
+{ "email": "jean@example.com" }
+```
+ou les deux :
+```json
+{ "name": "Jean Dupont", "email": "jean@example.com" }
+```
+- Réponse : `Profile` mis à jour
+
+**Tests d'erreur à faire :**
+| Test | Résultat attendu |
+|------|-----------------|
+| Body vide `{}` | `400 NOTHING_TO_UPDATE` |
+| Email déjà utilisé par un autre compte | `409 DUPLICATE_ACCOUNT` |
+| Email invalide `"pas-un-email"` | `400` (validation schéma) |
+| Sans token | `401 UNAUTHORIZED` |
+
+---
+
+### 19. Enregistrer ma position GPS
+
+**PATCH** `http://localhost:3000/api/v1/profile/location`
+
+- Auth : **Bearer token** requis
+- Body (JSON) :
+```json
+{
+  "latitude": 3.8480,
+  "longitude": 11.5021
+}
+```
+- Réponse : `Profile` avec `delivery_location` rempli :
+```json
+{
+  "id": 42,
+  "name": "Jean Dupont",
+  "delivery_location": {
+    "latitude": 3.848,
+    "longitude": 11.5021
+  }
+}
+```
+
+**Tests d'erreur à faire :**
+| Test | Résultat attendu |
+|------|-----------------|
+| `{ "latitude": 0, "longitude": 0 }` | `400 INVALID_COORDINATES` |
+| `{ "latitude": 999, "longitude": 0 }` | `400` (validation schéma — hors plage) |
+| Sans token | `401 UNAUTHORIZED` |
+
+> Après ce PATCH, vérifier dans Odoo (res.partner) que `partner_latitude` et `partner_longitude` ont bien été mis à jour.
+
+---
+
 ## Health Check
 
 **GET** `http://localhost:3000/ping`
@@ -377,3 +462,6 @@ Valeurs possibles pour `status` : `pending` `received` `processing` `ready_for_p
 | 14 | GET | `/api/v1/appointments` | ✅ | Appointments |
 | 15 | GET | `/api/v1/subscription` | ✅ | Subscription |
 | 16 | POST | `/api/v1/subscription` | ✅ | Subscription |
+| 17 | GET | `/api/v1/profile` | ✅ | Profile |
+| 18 | PATCH | `/api/v1/profile` | ✅ | Profile |
+| 19 | PATCH | `/api/v1/profile/location` | ✅ | Profile |

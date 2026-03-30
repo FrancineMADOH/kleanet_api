@@ -137,9 +137,12 @@ Fastify API  ──── 1 seul compte de service Odoo ────▶ Odoo
 | AUTH-04 | ✅ | `POST /api/v1/auth/facebook`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout` |
 | CATALOG-01 | ✅ | `GET /api/v1/catalog/services` — garment types + pricing rules (Redis cache 1h) |
 | CATALOG-02 | ✅ | `GET /api/v1/catalog/plans` — subscription plans (Redis cache 1h) |
+| ORDERS-01 | ✅ | `POST /api/v1/orders`, `GET /api/v1/orders`, `GET /api/v1/orders/:id` |
+| APPOINTMENTS-01 | ✅ | `POST /api/v1/appointments`, `GET /api/v1/appointments` — validations 2h + ownership |
+| SUBSCRIPTION-01 | ✅ | `GET /api/v1/subscription`, `POST /api/v1/subscription` — 409 ALREADY_SUBSCRIBED, 404 PLAN_NOT_FOUND |
 
 ### Next step
-**ORDERS-01** — Créer, lister, consulter les commandes
+**PROFILE-01** — Consulter et mettre à jour le profil client (+ déduplication partenaires)
 
 ### Key files
 ```
@@ -172,11 +175,26 @@ src/
 │   │   ├── auth.schema.ts          # Fastify/Swagger JSON schemas for auth routes
 │   │   ├── auth.service.ts         # sendOtp(), verifyOtpAndLogin(), googleLogin(), facebookLogin(), refreshAccessToken(), logout()
 │   │   └── auth.routes.ts          # POST /phone/send, /phone/verify, /google, /facebook, /refresh, /logout
-│   └── catalog/
-│       ├── catalog.types.ts        # GarmentType, PricingRule, CatalogResponse, SubscriptionPlan
-│       ├── catalog.schema.ts       # Fastify/Swagger JSON schemas for catalog routes
-│       ├── catalog.service.ts      # getCatalog(), getPlans(), invalidateCache() — Redis cache + Odoo
-│       └── catalog.routes.ts       # GET /services, GET /plans, DELETE /cache
+│   ├── catalog/
+│   │   ├── catalog.types.ts        # GarmentType, PricingRule, CatalogResponse, SubscriptionPlan
+│   │   ├── catalog.schema.ts       # Fastify/Swagger JSON schemas for catalog routes
+│   │   ├── catalog.service.ts      # getCatalog(), getPlans(), invalidateCache() — Redis cache + Odoo
+│   │   └── catalog.routes.ts       # GET /services, GET /plans, DELETE /cache
+│   ├── orders/
+│   │   ├── orders.types.ts         # OrderStatus, OrderLine, OrderSummary, OrderDetail, CreateOrderInput
+│   │   ├── orders.schema.ts        # Fastify/Swagger JSON schemas for orders routes
+│   │   ├── orders.service.ts       # createOrder(), listOrders(), getOrder() — status mapping, GPS
+│   │   └── orders.routes.ts        # POST /, GET /, GET /:id
+│   ├── appointments/
+│   │   ├── appointments.types.ts   # AppointmentStatus, AppointmentSummary, CreateAppointmentInput
+│   │   ├── appointments.schema.ts  # Fastify/Swagger JSON schemas
+│   │   ├── appointments.service.ts # createAppointment() (2h validation, ownership check), listAppointments()
+│   │   └── appointments.routes.ts  # POST /, GET /
+│   └── subscription/
+│       ├── subscription.types.ts   # SubscriptionState, ActiveSubscription, SubscriptionUsage, SubscribeInput
+│       ├── subscription.schema.ts  # Fastify/Swagger JSON schemas
+│       ├── subscription.service.ts # getMySubscription(), subscribe() — 409/404 errors
+│       └── subscription.routes.ts  # GET /, POST /
 └── types/
     └── fastify.d.ts                # JwtPayload type + FastifyRequest.user augmentation
 ```

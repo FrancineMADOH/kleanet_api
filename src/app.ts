@@ -8,6 +8,7 @@ import catalogRoutes from './modules/catalog/catalog.routes';
 import ordersRoutes from './modules/orders/orders.routes';
 import appointmentsRoutes from './modules/appointments/appointments.routes';
 import subscriptionRoutes from './modules/subscription/subscription.routes';
+import profileRoutes from './modules/profile/profile.routes';
 import { authGuard } from './shared/guards/auth.guard';
 
 /**
@@ -38,6 +39,7 @@ export function buildApp(): FastifyInstance {
   fastify.register(ordersRoutes, { prefix: '/api/v1/orders' });
   fastify.register(appointmentsRoutes, { prefix: '/api/v1/appointments' });
   fastify.register(subscriptionRoutes, { prefix: '/api/v1/subscription' });
+  fastify.register(profileRoutes, { prefix: '/api/v1/profile' });
 
   // ----------------------------------------------------------------
   // Health check — used by load balancers and Docker health checks
