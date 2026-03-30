@@ -21,19 +21,27 @@ process.env['ODOO_PASSWORD'] ??= 'admin';
 process.env['JWT_SECRET'] ??= 'export-script-placeholder-secret-key-32c';
 process.env['REDIS_URL'] ??= 'redis://localhost:6379';
 
-// Dynamic import after env is set
-const { buildApp } = await import('../src/app.js');
+async function main(): Promise<void> {
+  // Dynamic import after env vars are set (config validates at module load)
+  const { buildApp } = await import('../src/app');
 
-const app = buildApp();
-await app.ready();
+  const app = buildApp();
+  await app.ready();
 
-const schema = app.swagger();
+  const schema = app.swagger();
 
-mkdirSync(join(process.cwd(), 'docs'), { recursive: true });
-const outPath = join(process.cwd(), 'docs', 'openapi.json');
-writeFileSync(outPath, JSON.stringify(schema, null, 2));
+  mkdirSync(join(process.cwd(), 'docs'), { recursive: true });
+  const outPath = join(process.cwd(), 'docs', 'openapi.json');
+  writeFileSync(outPath, JSON.stringify(schema, null, 2));
 
-console.log(`OpenAPI schema written to ${outPath}`);
-console.log(`Routes: ${Object.keys((schema as Record<string, unknown>).paths ?? {}).length} paths`);
+  const pathCount = Object.keys((schema as Record<string, unknown>).paths ?? {}).length;
+  console.log(`OpenAPI schema written to ${outPath}`);
+  console.log(`Routes: ${pathCount} paths`);
 
-await app.close();
+  await app.close();
+}
+
+main().catch((err) => {
+  console.error('Export failed:', err);
+  process.exit(1);
+});

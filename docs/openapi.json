@@ -1,0 +1,2630 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Kleanet API",
+    "description": "Middleware API for the Kleanet laundry-on-demand service (Yaoundé, Cameroon). Connects the Flutter mobile app to the Odoo 19 back-office.",
+    "version": "1.0.0"
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {}
+  },
+  "paths": {
+    "/api/v1/auth/phone/send": {
+      "post": {
+        "summary": "Send OTP via SMS",
+        "tags": [
+          "Auth"
+        ],
+        "description": "Sends a 6-digit OTP to the provided E.164 phone number. Limited to 3 requests per 10-minute window per phone number.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "phone"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+[1-9]\\d{7,14}$",
+                    "description": "E.164 phone number, e.g. +237612345678"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/phone/verify": {
+      "post": {
+        "summary": "Verify OTP and return JWT tokens",
+        "tags": [
+          "Auth"
+        ],
+        "description": "Verifies the 6-digit OTP and returns access + refresh tokens. Creates a new Odoo partner if the phone number is not yet registered.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "phone",
+                  "code"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+[1-9]\\d{7,14}$",
+                    "description": "E.164 phone number"
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^\\d{6}$",
+                    "description": "6-digit OTP received by SMS"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "refresh_token": {
+                      "type": "string"
+                    },
+                    "partner_id": {
+                      "type": "number"
+                    },
+                    "is_new_user": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "access_token",
+                    "refresh_token",
+                    "partner_id",
+                    "is_new_user"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google": {
+      "post": {
+        "summary": "Login with Google",
+        "tags": [
+          "Auth"
+        ],
+        "description": "Verifies a Google id_token obtained by the Flutter app via the Google Sign-In SDK. Creates a new Odoo partner if the email is not yet registered.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id_token"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "id_token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Google id_token from the Flutter Google Sign-In SDK"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "refresh_token": {
+                      "type": "string"
+                    },
+                    "partner_id": {
+                      "type": "number"
+                    },
+                    "is_new_user": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "access_token",
+                    "refresh_token",
+                    "partner_id",
+                    "is_new_user"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/facebook": {
+      "post": {
+        "summary": "Login with Facebook",
+        "tags": [
+          "Auth"
+        ],
+        "description": "Verifies a Facebook access_token obtained by the Flutter app via the Facebook Login SDK. Creates a new Odoo partner if the email is not yet registered.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "access_token"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "access_token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Facebook access_token from the Flutter Facebook Login SDK"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "refresh_token": {
+                      "type": "string"
+                    },
+                    "partner_id": {
+                      "type": "number"
+                    },
+                    "is_new_user": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "access_token",
+                    "refresh_token",
+                    "partner_id",
+                    "is_new_user"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "summary": "Refresh access token",
+        "tags": [
+          "Auth"
+        ],
+        "description": "Exchanges a valid refresh token for a new access token (30 min).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refresh_token"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "refresh_token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Refresh token obtained at login"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "access_token"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "Logout — revoke refresh token",
+        "tags": [
+          "Auth"
+        ],
+        "description": "Revokes the provided refresh token in Redis. The access token remains valid until its natural expiry (30 min). Requires a valid Bearer access token in the Authorization header.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refresh_token"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "refresh_token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Refresh token to revoke"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/services": {
+      "get": {
+        "summary": "Get garment types and pricing rules",
+        "tags": [
+          "Catalog"
+        ],
+        "description": "Returns the full catalogue: garment types and pricing rules. Cached in Redis for 1 hour. Public — no authentication required.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "garment_types": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "default_material": {
+                            "type": "string"
+                          },
+                          "is_special_item": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "is_special_item"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "pricing_rules": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "per_kg",
+                              "per_piece"
+                            ]
+                          },
+                          "material_name": {
+                            "type": "string"
+                          },
+                          "garment_type_name": {
+                            "type": "string"
+                          },
+                          "price": {
+                            "type": "number"
+                          },
+                          "currency": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "mode",
+                          "price",
+                          "currency"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "cached_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "garment_types",
+                    "pricing_rules"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/plans": {
+      "get": {
+        "summary": "Get active subscription plans",
+        "tags": [
+          "Catalog"
+        ],
+        "description": "Returns all active subscription plans. Cached in Redis for 1 hour. Public — no authentication required.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "number"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "segment": {
+                        "type": "string",
+                        "enum": [
+                          "residential",
+                          "business"
+                        ]
+                      },
+                      "billing_cycle": {
+                        "type": "string",
+                        "enum": [
+                          "monthly",
+                          "weekly"
+                        ]
+                      },
+                      "included_weight_kg": {
+                        "type": "number"
+                      },
+                      "included_pieces": {
+                        "type": "number"
+                      },
+                      "included_pickups_per_week": {
+                        "type": "number"
+                      },
+                      "recurring_fee": {
+                        "type": "number"
+                      },
+                      "overage_price_per_kg": {
+                        "type": "number"
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "target_label": {
+                        "type": "string"
+                      },
+                      "is_recommended": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "segment",
+                      "billing_cycle",
+                      "included_weight_kg",
+                      "included_pieces",
+                      "included_pickups_per_week",
+                      "recurring_fee",
+                      "overage_price_per_kg",
+                      "currency",
+                      "is_recommended"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/cache": {
+      "delete": {
+        "summary": "Invalidate catalogue cache",
+        "tags": [
+          "Catalog"
+        ],
+        "description": "Clears the Redis cache for both /services and /plans. The next request to either endpoint will re-fetch from Odoo. Requires a valid Bearer access token.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orders/": {
+      "post": {
+        "summary": "Create a laundry order",
+        "tags": [
+          "Orders"
+        ],
+        "description": "Creates a new laundry order with one or more lines. The partner_id is taken from the JWT — never passed in the body. Odoo computes unit prices and subtotals server-side.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "lines"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "garment_type_id"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "garment_type_id": {
+                          "type": "number",
+                          "minimum": 1
+                        },
+                        "material_id": {
+                          "type": "number",
+                          "minimum": 1
+                        },
+                        "quantity": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "weight_kg": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "description": "At least one order line required."
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Optional notes for the driver or team."
+                  },
+                  "subscription_id": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Active subscription to apply."
+                  },
+                  "delivery_location": {
+                    "type": "object",
+                    "required": [
+                      "latitude",
+                      "longitude"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "latitude": {
+                        "type": "number"
+                      },
+                      "longitude": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "received",
+                        "processing",
+                        "ready_for_pickup",
+                        "delivered",
+                        "cancelled"
+                      ]
+                    },
+                    "amount_total": {
+                      "type": "number"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "total_pieces": {
+                      "type": "number"
+                    },
+                    "date_received": {
+                      "type": "string"
+                    },
+                    "date_ready": {
+                      "type": "string"
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "garment_type_id": {
+                            "type": "number"
+                          },
+                          "garment_type_name": {
+                            "type": "string"
+                          },
+                          "material_id": {
+                            "type": "number"
+                          },
+                          "material_name": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "number"
+                          },
+                          "weight_kg": {
+                            "type": "number"
+                          },
+                          "unit_price": {
+                            "type": "number"
+                          },
+                          "subtotal": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "quantity",
+                          "weight_kg",
+                          "unit_price",
+                          "subtotal"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "subscription_id": {
+                      "type": "number"
+                    },
+                    "delivery_latitude": {
+                      "type": "number"
+                    },
+                    "delivery_longitude": {
+                      "type": "number"
+                    },
+                    "tracking_url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reference",
+                    "status",
+                    "amount_total",
+                    "currency",
+                    "total_pieces",
+                    "lines",
+                    "tracking_url"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List my orders",
+        "tags": [
+          "Orders"
+        ],
+        "description": "Returns a paginated list of the authenticated partner's orders, newest first.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "in": "query",
+            "name": "page",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "received",
+                "processing",
+                "ready_for_pickup",
+                "delivered",
+                "cancelled"
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "number"
+                      },
+                      "reference": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "received",
+                          "processing",
+                          "ready_for_pickup",
+                          "delivered",
+                          "cancelled"
+                        ]
+                      },
+                      "amount_total": {
+                        "type": "number"
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "total_pieces": {
+                        "type": "number"
+                      },
+                      "date_received": {
+                        "type": "string"
+                      },
+                      "date_ready": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "reference",
+                      "status",
+                      "amount_total",
+                      "currency",
+                      "total_pieces"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "get": {
+        "summary": "Get order detail",
+        "tags": [
+          "Orders"
+        ],
+        "description": "Returns full detail for a specific order including lines. Returns 404 if the order does not exist or belongs to another partner.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "received",
+                        "processing",
+                        "ready_for_pickup",
+                        "delivered",
+                        "cancelled"
+                      ]
+                    },
+                    "amount_total": {
+                      "type": "number"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "total_pieces": {
+                      "type": "number"
+                    },
+                    "date_received": {
+                      "type": "string"
+                    },
+                    "date_ready": {
+                      "type": "string"
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "garment_type_id": {
+                            "type": "number"
+                          },
+                          "garment_type_name": {
+                            "type": "string"
+                          },
+                          "material_id": {
+                            "type": "number"
+                          },
+                          "material_name": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "number"
+                          },
+                          "weight_kg": {
+                            "type": "number"
+                          },
+                          "unit_price": {
+                            "type": "number"
+                          },
+                          "subtotal": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "quantity",
+                          "weight_kg",
+                          "unit_price",
+                          "subtotal"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "subscription_id": {
+                      "type": "number"
+                    },
+                    "delivery_latitude": {
+                      "type": "number"
+                    },
+                    "delivery_longitude": {
+                      "type": "number"
+                    },
+                    "tracking_url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reference",
+                    "status",
+                    "amount_total",
+                    "currency",
+                    "total_pieces",
+                    "lines",
+                    "tracking_url"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/": {
+      "post": {
+        "summary": "Create a pickup or delivery appointment",
+        "tags": [
+          "Appointments"
+        ],
+        "description": "Books a new appointment for the authenticated partner. scheduled_from must be at least 2 hours from now. order_ids, if provided, must all belong to the authenticated partner.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "scheduled_from"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "pickup",
+                      "delivery"
+                    ],
+                    "description": "Type of appointment."
+                  },
+                  "scheduled_from": {
+                    "type": "string",
+                    "description": "ISO 8601 datetime — minimum 2 hours from now."
+                  },
+                  "scheduled_to": {
+                    "type": "string",
+                    "description": "ISO 8601 datetime — optional end of the time slot."
+                  },
+                  "order_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 1
+                    },
+                    "description": "Laundry order IDs to link to this appointment."
+                  },
+                  "subscription_id": {
+                    "type": "number",
+                    "minimum": 1,
+                    "description": "Active subscription to associate."
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Optional notes for the driver or operations team."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "pickup",
+                        "delivery"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "requested",
+                        "scheduled",
+                        "on_route",
+                        "arrived",
+                        "done",
+                        "cancelled"
+                      ]
+                    },
+                    "scheduled_from": {
+                      "type": "string",
+                      "description": "ISO 8601 UTC datetime."
+                    },
+                    "scheduled_to": {
+                      "type": "string",
+                      "description": "ISO 8601 UTC datetime."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reference",
+                    "type",
+                    "status",
+                    "scheduled_from"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List my appointments",
+        "tags": [
+          "Appointments"
+        ],
+        "description": "Returns all appointments for the authenticated partner, newest first.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "number"
+                      },
+                      "reference": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "pickup",
+                          "delivery"
+                        ]
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "requested",
+                          "scheduled",
+                          "on_route",
+                          "arrived",
+                          "done",
+                          "cancelled"
+                        ]
+                      },
+                      "scheduled_from": {
+                        "type": "string",
+                        "description": "ISO 8601 UTC datetime."
+                      },
+                      "scheduled_to": {
+                        "type": "string",
+                        "description": "ISO 8601 UTC datetime."
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "reference",
+                      "type",
+                      "status",
+                      "scheduled_from"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subscription/": {
+      "get": {
+        "summary": "Get my active subscription",
+        "tags": [
+          "Subscription"
+        ],
+        "description": "Returns the active or paused subscription for the authenticated partner. Returns { subscription: null } if the partner has no active subscription.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "subscription": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "number"
+                            },
+                            "reference": {
+                              "type": "string",
+                              "description": "Subscription reference (e.g. SUB/2026/00001)."
+                            },
+                            "plan_name": {
+                              "type": "string"
+                            },
+                            "billing_cycle": {
+                              "type": "string",
+                              "enum": [
+                                "monthly",
+                                "weekly"
+                              ]
+                            },
+                            "included_weight_kg": {
+                              "type": "number"
+                            },
+                            "included_pieces": {
+                              "type": "number"
+                            },
+                            "included_pickups_per_week": {
+                              "type": "integer"
+                            },
+                            "recurring_fee": {
+                              "type": "number"
+                            },
+                            "overage_price_per_kg": {
+                              "type": "number"
+                            },
+                            "currency": {
+                              "type": "string",
+                              "description": "ISO 4217 currency code (e.g. XAF)."
+                            },
+                            "start_date": {
+                              "type": "string",
+                              "description": "Start date — YYYY-MM-DD."
+                            },
+                            "end_date": {
+                              "type": "string",
+                              "description": "End date — YYYY-MM-DD (optional)."
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "active",
+                                "paused",
+                                "cancelled"
+                              ]
+                            },
+                            "usage": {
+                              "type": "object",
+                              "properties": {
+                                "orders_this_period": {
+                                  "type": "integer",
+                                  "description": "Orders placed this billing period."
+                                },
+                                "weight_used_kg": {
+                                  "type": "number",
+                                  "description": "Weight (kg) consumed this period."
+                                },
+                                "remaining_weight_kg": {
+                                  "type": "number",
+                                  "description": "Weight (kg) remaining before overage."
+                                }
+                              },
+                              "required": [
+                                "orders_this_period",
+                                "weight_used_kg",
+                                "remaining_weight_kg"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "reference",
+                            "plan_name",
+                            "billing_cycle",
+                            "included_weight_kg",
+                            "included_pieces",
+                            "included_pickups_per_week",
+                            "recurring_fee",
+                            "overage_price_per_kg",
+                            "currency",
+                            "start_date",
+                            "state",
+                            "usage"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "subscription"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Subscribe to a plan",
+        "tags": [
+          "Subscription"
+        ],
+        "description": "Creates a new subscription for the authenticated partner from the given plan. Returns 409 if the partner already has an active or paused subscription.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "plan_id"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "plan_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "ID of the subscription plan to subscribe to."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "reference": {
+                      "type": "string",
+                      "description": "Subscription reference (e.g. SUB/2026/00001)."
+                    },
+                    "plan_name": {
+                      "type": "string"
+                    },
+                    "billing_cycle": {
+                      "type": "string",
+                      "enum": [
+                        "monthly",
+                        "weekly"
+                      ]
+                    },
+                    "included_weight_kg": {
+                      "type": "number"
+                    },
+                    "included_pieces": {
+                      "type": "number"
+                    },
+                    "included_pickups_per_week": {
+                      "type": "integer"
+                    },
+                    "recurring_fee": {
+                      "type": "number"
+                    },
+                    "overage_price_per_kg": {
+                      "type": "number"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "description": "ISO 4217 currency code (e.g. XAF)."
+                    },
+                    "start_date": {
+                      "type": "string",
+                      "description": "Start date — YYYY-MM-DD."
+                    },
+                    "end_date": {
+                      "type": "string",
+                      "description": "End date — YYYY-MM-DD (optional)."
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "paused",
+                        "cancelled"
+                      ]
+                    },
+                    "usage": {
+                      "type": "object",
+                      "properties": {
+                        "orders_this_period": {
+                          "type": "integer",
+                          "description": "Orders placed this billing period."
+                        },
+                        "weight_used_kg": {
+                          "type": "number",
+                          "description": "Weight (kg) consumed this period."
+                        },
+                        "remaining_weight_kg": {
+                          "type": "number",
+                          "description": "Weight (kg) remaining before overage."
+                        }
+                      },
+                      "required": [
+                        "orders_this_period",
+                        "weight_used_kg",
+                        "remaining_weight_kg"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reference",
+                    "plan_name",
+                    "billing_cycle",
+                    "included_weight_kg",
+                    "included_pieces",
+                    "included_pickups_per_week",
+                    "recurring_fee",
+                    "overage_price_per_kg",
+                    "currency",
+                    "start_date",
+                    "state",
+                    "usage"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/": {
+      "get": {
+        "summary": "Get my profile",
+        "tags": [
+          "Profile"
+        ],
+        "description": "Returns the profile of the authenticated partner.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "Email address (optional)."
+                    },
+                    "phone": {
+                      "type": "string",
+                      "description": "Phone number (optional)."
+                    },
+                    "delivery_location": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "latitude": {
+                              "type": "number",
+                              "description": "Latitude in decimal degrees."
+                            },
+                            "longitude": {
+                              "type": "number",
+                              "description": "Longitude in decimal degrees."
+                            }
+                          },
+                          "required": [
+                            "latitude",
+                            "longitude"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Saved GPS location — null if not yet set."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "delivery_location"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update my profile",
+        "tags": [
+          "Profile"
+        ],
+        "description": "Updates name and/or email. At least one field must be provided. Returns 409 if the email is already linked to another account.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Display name."
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Email address."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "Email address (optional)."
+                    },
+                    "phone": {
+                      "type": "string",
+                      "description": "Phone number (optional)."
+                    },
+                    "delivery_location": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "latitude": {
+                              "type": "number",
+                              "description": "Latitude in decimal degrees."
+                            },
+                            "longitude": {
+                              "type": "number",
+                              "description": "Longitude in decimal degrees."
+                            }
+                          },
+                          "required": [
+                            "latitude",
+                            "longitude"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Saved GPS location — null if not yet set."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "delivery_location"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile/location": {
+      "patch": {
+        "summary": "Save my GPS location",
+        "tags": [
+          "Profile"
+        ],
+        "description": "Saves the partner GPS coordinates for pre-filling pickup address. Coordinates (0, 0) are rejected as they represent the Odoo unset default.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "latitude",
+                  "longitude"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "latitude": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90,
+                    "description": "Latitude in decimal degrees (-90 to 90)."
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180,
+                    "description": "Longitude in decimal degrees (-180 to 180)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "Email address (optional)."
+                    },
+                    "phone": {
+                      "type": "string",
+                      "description": "Phone number (optional)."
+                    },
+                    "delivery_location": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "latitude": {
+                              "type": "number",
+                              "description": "Latitude in decimal degrees."
+                            },
+                            "longitude": {
+                              "type": "number",
+                              "description": "Longitude in decimal degrees."
+                            }
+                          },
+                          "required": [
+                            "latitude",
+                            "longitude"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Saved GPS location — null if not yet set."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "delivery_location"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/feedback/": {
+      "post": {
+        "summary": "Submit feedback for a delivered order",
+        "tags": [
+          "Feedback"
+        ],
+        "description": "Creates a customer feedback entry for the given order. The order must be in delivered state and must belong to the authenticated partner. Only one feedback per order is allowed.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "order_id",
+                  "rating"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "order_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "ID of the delivered order to review."
+                  },
+                  "rating": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5,
+                    "description": "Rating from 1 (worst) to 5 (best)."
+                  },
+                  "comment": {
+                    "type": "string",
+                    "description": "Optional free-text comment."
+                  },
+                  "would_recommend": {
+                    "type": "boolean",
+                    "description": "Whether the customer would recommend the service."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "reference": {
+                      "type": "string",
+                      "description": "Feedback reference (e.g. FBK/2026/00001)."
+                    },
+                    "order_id": {
+                      "type": "number"
+                    },
+                    "rating": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5
+                    },
+                    "would_recommend": {
+                      "type": "boolean"
+                    },
+                    "comment": {
+                      "type": "string"
+                    },
+                    "submitted_at": {
+                      "type": "string",
+                      "description": "ISO 8601 UTC datetime."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reference",
+                    "order_id",
+                    "rating",
+                    "submitted_at"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/faq/": {
+      "get": {
+        "summary": "List frequently asked questions",
+        "tags": [
+          "FAQ"
+        ],
+        "description": "Returns all published customer-facing FAQs. Filter by category using the optional `category_id` query param. Results are served from Redis cache (TTL 1h). Invalidated by DELETE /api/v1/catalog/cache.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "description": "Filter FAQs by category ID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "number"
+                      },
+                      "reference": {
+                        "type": "string",
+                        "description": "FAQ reference (e.g. FAQ/2026/00001)."
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "answer": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "sequence": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "reference",
+                      "question",
+                      "answer",
+                      "category",
+                      "sequence"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development"
+    }
+  ]
+}
