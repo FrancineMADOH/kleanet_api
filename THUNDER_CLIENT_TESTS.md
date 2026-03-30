@@ -285,6 +285,69 @@ Valeurs possibles pour `status` : `pending` `received` `processing` `ready_for_p
 
 ---
 
+## SUBSCRIPTION — Routes protégées
+
+### 15. Consulter mon abonnement actif
+
+**GET** `http://localhost:3000/api/v1/subscription`
+
+- Auth : **Bearer token** requis
+- Body : aucun
+- Réponse sans abonnement :
+```json
+{ "subscription": null }
+```
+- Réponse avec abonnement :
+```json
+{
+  "subscription": {
+    "id": 1,
+    "reference": "SUB/2026/00001",
+    "plan_name": "Essentiel",
+    "billing_cycle": "monthly",
+    "included_weight_kg": 10,
+    "included_pieces": 20,
+    "included_pickups_per_week": 2,
+    "recurring_fee": 15000,
+    "overage_price_per_kg": 1800,
+    "currency": "XAF",
+    "start_date": "2026-03-30",
+    "state": "active",
+    "usage": {
+      "orders_this_period": 2,
+      "weight_used_kg": 3.5,
+      "remaining_weight_kg": 6.5
+    }
+  }
+}
+```
+
+---
+
+### 16. Souscrire à un plan
+
+**POST** `http://localhost:3000/api/v1/subscription`
+
+- Auth : **Bearer token** requis
+- Body (JSON) :
+```json
+{
+  "plan_id": 1
+}
+```
+- Réponse : `ActiveSubscription` complet (même structure que GET)
+
+**Tests d'erreur à faire :**
+| Test | Résultat attendu |
+|------|-----------------|
+| `plan_id` inexistant ou inactif | `404 PLAN_NOT_FOUND` |
+| Appeler POST une 2ème fois (abonnement déjà actif) | `409 ALREADY_SUBSCRIBED` |
+| Sans token | `401 UNAUTHORIZED` |
+
+> Utiliser l'id du plan retourné par `GET /catalog/plans` pour avoir un `plan_id` valide.
+
+---
+
 ## Health Check
 
 **GET** `http://localhost:3000/ping`
@@ -312,3 +375,5 @@ Valeurs possibles pour `status` : `pending` `received` `processing` `ready_for_p
 | 12 | GET | `/api/v1/orders/:id` | ✅ | Orders |
 | 13 | POST | `/api/v1/appointments` | ✅ | Appointments |
 | 14 | GET | `/api/v1/appointments` | ✅ | Appointments |
+| 15 | GET | `/api/v1/subscription` | ✅ | Subscription |
+| 16 | POST | `/api/v1/subscription` | ✅ | Subscription |
