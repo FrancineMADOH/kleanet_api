@@ -100,6 +100,29 @@ docker compose up redis -d   # Redis on localhost:6379
 
 ---
 
+### Architecture — accès Odoo (à retenir absolument)
+
+```
+Flutter App (utilisateur mobile)
+      │  HTTPS + JWT
+      ▼
+Fastify API  ──── 1 seul compte de service Odoo ────▶ Odoo
+              (ODOO_USER + ODOO_PASSWORD dans .env)
+```
+
+**Les utilisateurs mobiles ne se connectent JAMAIS à Odoo directement.**
+- Ils ont un JWT (token d'identité dans l'API), pas un compte Odoo.
+- Leurs données dans Odoo sont des enregistrements `res.partner` — ce sont des **données**, pas des utilisateurs (`res.users`).
+- L'API fait toutes les requêtes Odoo en leur nom via **un unique compte de service**.
+
+**Conséquence pour les permissions Odoo** : Le compte de service (`ODOO_USER`) doit être membre du groupe `bw_kleanet.group_laundry_manager` pour accéder à tous les modèles laundry. Les utilisateurs mobiles n'ont aucun rôle Odoo à configurer.
+
+**Setup à faire une seule fois en dev et en prod** :
+- Dev rapide : Odoo → Settings → Users → `admin` → ajouter **Laundry Manager**
+- Prod recommandé : créer un compte `kleanet_api` dédié avec rôle **Laundry Manager**, mettre ses credentials dans `.env`
+
+---
+
 ### Steps completed
 | Step | Status | What was built |
 |------|--------|---------------|
@@ -110,9 +133,13 @@ docker compose up redis -d   # Redis on localhost:6379
 | FOUNDATION-05 | ✅ | JWT plugin (`@fastify/jwt`), `authGuard` preHandler, `JwtPayload` type |
 | AUTH-01 | ✅ | Redis plugin (ioredis), OTP service (generate/store/verify), SMS service (Mock + AfricasTalking) |
 | AUTH-02 | ✅ | `POST /api/v1/auth/phone/send` + `POST /api/v1/auth/phone/verify` — full OTP→JWT cycle |
+| AUTH-03 | ✅ | `POST /api/v1/auth/google` — Google OAuth login |
+| AUTH-04 | ✅ | `POST /api/v1/auth/facebook`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout` |
+| CATALOG-01 | ✅ | `GET /api/v1/catalog/services` — garment types + pricing rules (Redis cache 1h) |
+| CATALOG-02 | ✅ | `GET /api/v1/catalog/plans` — subscription plans (Redis cache 1h) |
 
 ### Next step
-**AUTH-03** — Google OAuth (`POST /api/v1/auth/google`)
+**ORDERS-01** — Créer, lister, consulter les commandes
 
 ### Key files
 ```
@@ -133,15 +160,23 @@ src/
 │   │   └── odoo.types.ts           # JSON-RPC types + OdooClientError/NetworkError/SessionError
 │   ├── guards/
 │   │   └── auth.guard.ts           # authGuard preHandler — verifies Bearer JWT → request.user
+│   ├── oauth/
+│   │   ├── google.service.ts       # verifyGoogleToken() via google-auth-library
+│   │   └── facebook.service.ts     # verifyFacebookToken() via native fetch → Graph API
 │   └── otp/
 │       ├── otp.service.ts          # generateOtp, storeOtp, verifyOtp (Redis-backed)
 │       └── sms.service.ts          # SmsProvider interface, MockSmsProvider, AfricasTalkingSmsProvider
 ├── modules/
-│   └── auth/
-│       ├── auth.types.ts           # SendOtpInput, VerifyOtpInput, LoginResponse, SendOtpResult
-│       ├── auth.schema.ts          # Fastify/Swagger JSON schemas for auth routes
-│       ├── auth.service.ts         # sendOtp(), verifyOtpAndLogin() — business logic
-│       └── auth.routes.ts          # POST /phone/send, POST /phone/verify
+│   ├── auth/
+│   │   ├── auth.types.ts           # SendOtpInput, VerifyOtpInput, LoginResponse, SendOtpResult
+│   │   ├── auth.schema.ts          # Fastify/Swagger JSON schemas for auth routes
+│   │   ├── auth.service.ts         # sendOtp(), verifyOtpAndLogin(), googleLogin(), facebookLogin(), refreshAccessToken(), logout()
+│   │   └── auth.routes.ts          # POST /phone/send, /phone/verify, /google, /facebook, /refresh, /logout
+│   └── catalog/
+│       ├── catalog.types.ts        # GarmentType, PricingRule, CatalogResponse, SubscriptionPlan
+│       ├── catalog.schema.ts       # Fastify/Swagger JSON schemas for catalog routes
+│       ├── catalog.service.ts      # getCatalog(), getPlans(), invalidateCache() — Redis cache + Odoo
+│       └── catalog.routes.ts       # GET /services, GET /plans, DELETE /cache
 └── types/
     └── fastify.d.ts                # JwtPayload type + FastifyRequest.user augmentation
 ```

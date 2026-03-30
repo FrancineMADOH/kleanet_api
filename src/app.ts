@@ -5,6 +5,7 @@ import jwtPlugin from './plugins/jwt';
 import redisPlugin from './plugins/redis';
 import authRoutes from './modules/auth/auth.routes';
 import catalogRoutes from './modules/catalog/catalog.routes';
+import ordersRoutes from './modules/orders/orders.routes';
 import { authGuard } from './shared/guards/auth.guard';
 
 /**
@@ -32,6 +33,7 @@ export function buildApp(): FastifyInstance {
   // Auth routes — /api/v1/auth/phone/send, /api/v1/auth/phone/verify
   fastify.register(authRoutes, { prefix: '/api/v1/auth' });
   fastify.register(catalogRoutes, { prefix: '/api/v1/catalog' });
+  fastify.register(ordersRoutes, { prefix: '/api/v1/orders' });
 
   // ----------------------------------------------------------------
   // Health check — used by load balancers and Docker health checks
