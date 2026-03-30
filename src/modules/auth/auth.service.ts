@@ -4,6 +4,8 @@ import { config } from '../../config/env';
 import { generateOtp, storeOtp, verifyOtp } from '../../shared/otp/otp.service';
 import { getSmsProvider } from '../../shared/otp/sms.service';
 import { verifyGoogleToken, GoogleTokenError } from '../../shared/oauth/google.service';
+import { verifyFacebookToken, FacebookTokenError } from '../../shared/oauth/facebook.service';
+import type { JwtPayload } from '../../types/fastify';
 import type { OtpVerifyResult } from '../../shared/otp/otp.service';
 import type { LoginResponse, SendOtpResult } from './auth.types';
 
@@ -165,6 +167,112 @@ export async function googleLogin(
   };
 }
 
+/**
+ * Verifies a Facebook access_token via the Graph API and logs in (or registers)
+ * the matching Odoo partner.
+ *
+ * Returns 'invalid_token' if verification fails. Returns LoginResponse on success.
+ */
+export async function facebookLogin(
+  fastify: FastifyInstance,
+  accessToken: string,
+): Promise<'invalid_token' | LoginResponse> {
+  let profile;
+  try {
+    profile = await verifyFacebookToken(accessToken);
+  } catch (err) {
+    if (err instanceof FacebookTokenError) {
+      return 'invalid_token';
+    }
+    throw err;
+  }
+
+  const { partnerId, isNewUser } = await resolvePartnerByEmail(
+    fastify,
+    profile.email,
+    profile.name,
+  );
+
+  const newAccessToken = fastify.jwt.sign(
+    { sub: String(partnerId), partner_id: partnerId, email: profile.email },
+    { expiresIn: config.JWT_EXPIRY },
+  );
+
+  const jti = uuidv4();
+  const refreshToken = fastify.jwt.sign(
+    { sub: String(partnerId), partner_id: partnerId, jti },
+    { expiresIn: config.REFRESH_EXPIRY },
+  );
+
+  await fastify.redis.set(refreshKey(partnerId, jti), '1', 'EX', REFRESH_TTL_SECONDS);
+
+  return {
+    access_token: newAccessToken,
+    refresh_token: refreshToken,
+    partner_id: partnerId,
+    is_new_user: isNewUser,
+  };
+}
+
+/**
+ * Issues a new access token in exchange for a valid, non-revoked refresh token.
+ *
+ * Returns:
+ * - 'invalid'  — JWT signature invalid, expired, or missing jti claim
+ * - 'revoked'  — Redis key absent (token was logged out or never stored)
+ * - object     — new access_token string
+ */
+export async function refreshAccessToken(
+  fastify: FastifyInstance,
+  refreshToken: string,
+): Promise<'invalid' | 'revoked' | { access_token: string }> {
+  let payload: JwtPayload;
+  try {
+    payload = await fastify.jwt.verify<JwtPayload>(refreshToken);
+  } catch {
+    return 'invalid';
+  }
+
+  if (!payload.jti) {
+    return 'invalid';
+  }
+
+  const stored = await fastify.redis.get(refreshKey(payload.partner_id, payload.jti));
+  if (stored === null) {
+    return 'revoked';
+  }
+
+  const newAccessToken = fastify.jwt.sign(
+    { sub: payload.sub, partner_id: payload.partner_id },
+    { expiresIn: config.JWT_EXPIRY },
+  );
+
+  return { access_token: newAccessToken };
+}
+
+/**
+ * Revokes a refresh token by deleting its Redis key.
+ *
+ * Idempotent — if the token is already invalid or expired the call is a no-op.
+ * The access token remains valid until its natural expiry (max 30 min).
+ */
+export async function logout(
+  fastify: FastifyInstance,
+  refreshToken: string,
+): Promise<void> {
+  let payload: JwtPayload;
+  try {
+    payload = await fastify.jwt.verify<JwtPayload>(refreshToken);
+  } catch {
+    // Token already invalid — nothing to revoke, treat as success
+    return;
+  }
+
+  if (payload.jti) {
+    await fastify.redis.del(refreshKey(payload.partner_id, payload.jti));
+  }
+}
+
 // ----------------------------------------------------------------
 // Private helpers
 // ----------------------------------------------------------------
@@ -177,29 +285,39 @@ interface PartnerResolution {
 /**
  * Finds an existing Odoo partner by email address.
  * Creates a minimal partner record if none is found.
+ *
+ * Guard: if email is empty (e.g. Facebook user denied email permission) we
+ * skip the email search and create a name-only partner to avoid polluting
+ * Odoo with partners whose email is an empty string.
+ *
+ * NOTE: cross-linking with phone-only partners (created via OTP) is NOT
+ * possible here — it requires the user to confirm their email via PROFILE.
+ * See the "Partner fragmentation" section in CLAUDE.md.
  */
 async function resolvePartnerByEmail(
   fastify: FastifyInstance,
   email: string,
   name: string,
 ): Promise<PartnerResolution> {
-  const partners = await fastify.odoo.searchRead(
-    'res.partner',
-    [['email', '=', email]],
-    ['id', 'name', 'email', 'phone'],
-    { limit: 1 },
-  );
+  if (email) {
+    const partners = await fastify.odoo.searchRead(
+      'res.partner',
+      [['email', '=', email]],
+      ['id', 'name', 'email', 'phone'],
+      { limit: 1 },
+    );
 
-  if (partners.length > 0) {
-    return { partnerId: partners[0].id, isNewUser: false };
+    if (partners.length > 0) {
+      return { partnerId: partners[0].id, isNewUser: false };
+    }
   }
 
-  const newId = await fastify.odoo.create('res.partner', {
-    name,
-    email,
-    customer_rank: 1,
-  });
+  const partnerData: Record<string, unknown> = { name, customer_rank: 1 };
+  if (email) {
+    partnerData.email = email;
+  }
 
+  const newId = await fastify.odoo.create('res.partner', partnerData);
   return { partnerId: newId, isNewUser: true };
 }
 

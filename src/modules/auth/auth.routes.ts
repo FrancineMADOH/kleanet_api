@@ -1,6 +1,21 @@
 import type { FastifyInstance } from 'fastify';
-import { sendOtpSchema, verifyOtpSchema, googleAuthSchema } from './auth.schema';
-import { sendOtp, verifyOtpAndLogin, googleLogin } from './auth.service';
+import {
+  sendOtpSchema,
+  verifyOtpSchema,
+  googleAuthSchema,
+  facebookAuthSchema,
+  refreshSchema,
+  logoutSchema,
+} from './auth.schema';
+import {
+  sendOtp,
+  verifyOtpAndLogin,
+  googleLogin,
+  facebookLogin,
+  refreshAccessToken,
+  logout,
+} from './auth.service';
+import { authGuard } from '../../shared/guards/auth.guard';
 import type { SendOtpInput, VerifyOtpInput } from './auth.types';
 
 /**
@@ -9,6 +24,9 @@ import type { SendOtpInput, VerifyOtpInput } from './auth.types';
  * POST /phone/send   — sends OTP to a phone number
  * POST /phone/verify — verifies OTP and returns JWT tokens
  * POST /google       — verifies Google id_token and returns JWT tokens
+ * POST /facebook     — verifies Facebook access_token and returns JWT tokens
+ * POST /refresh      — exchanges refresh token for a new access token
+ * POST /logout       — revokes the refresh token (protected)
  */
 async function authRoutes(fastify: FastifyInstance): Promise<void> {
   // ----------------------------------------------------------------
@@ -75,6 +93,58 @@ async function authRoutes(fastify: FastifyInstance): Promise<void> {
       }
 
       return reply.code(200).send(result);
+    },
+  );
+
+  // ----------------------------------------------------------------
+  // POST /facebook
+  // ----------------------------------------------------------------
+  fastify.post<{ Body: { access_token: string } }>(
+    '/facebook',
+    { schema: facebookAuthSchema },
+    async (request, reply) => {
+      const result = await facebookLogin(fastify, request.body.access_token);
+
+      if (result === 'invalid_token') {
+        return reply.code(401).send({
+          error: 'INVALID_FACEBOOK_TOKEN',
+          message: 'Invalid or expired Facebook token.',
+        });
+      }
+
+      return reply.code(200).send(result);
+    },
+  );
+
+  // ----------------------------------------------------------------
+  // POST /refresh
+  // ----------------------------------------------------------------
+  fastify.post<{ Body: { refresh_token: string } }>(
+    '/refresh',
+    { schema: refreshSchema },
+    async (request, reply) => {
+      const result = await refreshAccessToken(fastify, request.body.refresh_token);
+
+      if (result === 'invalid' || result === 'revoked') {
+        return reply.code(401).send({
+          error: 'INVALID_REFRESH_TOKEN',
+          message: 'Refresh token is invalid, expired, or has been revoked.',
+        });
+      }
+
+      return reply.code(200).send(result);
+    },
+  );
+
+  // ----------------------------------------------------------------
+  // POST /logout  (protected — requires valid access token)
+  // ----------------------------------------------------------------
+  fastify.post<{ Body: { refresh_token: string } }>(
+    '/logout',
+    { preHandler: authGuard, schema: logoutSchema },
+    async (request, reply) => {
+      await logout(fastify, request.body.refresh_token);
+      return reply.code(200).send({ message: 'Logged out' });
     },
   );
 }

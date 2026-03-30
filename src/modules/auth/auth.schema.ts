@@ -93,6 +93,103 @@ export const googleAuthSchema = {
 } as const;
 
 // ----------------------------------------------------------------
+// POST /facebook
+// ----------------------------------------------------------------
+
+/** Fastify route schema for POST /api/v1/auth/facebook. */
+export const facebookAuthSchema = {
+  tags: ['Auth'],
+  summary: 'Login with Facebook',
+  description:
+    'Verifies a Facebook access_token obtained by the Flutter app via the Facebook Login SDK. ' +
+    'Creates a new Odoo partner if the email is not yet registered.',
+  body: {
+    type: 'object',
+    required: ['access_token'],
+    additionalProperties: false,
+    properties: {
+      access_token: {
+        type: 'string',
+        minLength: 1,
+        description: 'Facebook access_token from the Flutter Facebook Login SDK',
+      },
+    },
+  },
+  response: {
+    200: loginResponseSchema,
+    401: errorSchema,
+  },
+} as const;
+
+// ----------------------------------------------------------------
+// POST /refresh
+// ----------------------------------------------------------------
+
+/** Fastify route schema for POST /api/v1/auth/refresh. */
+export const refreshSchema = {
+  tags: ['Auth'],
+  summary: 'Refresh access token',
+  description: 'Exchanges a valid refresh token for a new access token (30 min).',
+  body: {
+    type: 'object',
+    required: ['refresh_token'],
+    additionalProperties: false,
+    properties: {
+      refresh_token: {
+        type: 'string',
+        minLength: 1,
+        description: 'Refresh token obtained at login',
+      },
+    },
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: { access_token: { type: 'string' } },
+      required: ['access_token'],
+      additionalProperties: false,
+    },
+    401: errorSchema,
+  },
+} as const;
+
+// ----------------------------------------------------------------
+// POST /logout
+// ----------------------------------------------------------------
+
+/** Fastify route schema for POST /api/v1/auth/logout. */
+export const logoutSchema = {
+  tags: ['Auth'],
+  summary: 'Logout — revoke refresh token',
+  description:
+    'Revokes the provided refresh token in Redis. ' +
+    'The access token remains valid until its natural expiry (30 min). ' +
+    'Requires a valid Bearer access token in the Authorization header.',
+  security: [{ BearerAuth: [] }],
+  body: {
+    type: 'object',
+    required: ['refresh_token'],
+    additionalProperties: false,
+    properties: {
+      refresh_token: {
+        type: 'string',
+        minLength: 1,
+        description: 'Refresh token to revoke',
+      },
+    },
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: { message: { type: 'string' } },
+      required: ['message'],
+      additionalProperties: false,
+    },
+    401: errorSchema,
+  },
+} as const;
+
+// ----------------------------------------------------------------
 // POST /phone/verify
 // ----------------------------------------------------------------
 

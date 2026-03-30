@@ -77,6 +77,29 @@ docker compose up redis -d   # Redis on localhost:6379
 # Odoo runs natively on localhost:8069
 ```
 
+### ⚠️ Known technical debt — MUST fix before launch
+
+#### Partner fragmentation (account duplication)
+
+**Problem**: A user who registers via OTP (phone only) then logs in via Google/Facebook will get two separate `res.partner` records in Odoo — because at auth time there is no common data to cross-link them (OTP flow has phone, OAuth flows have email, never both).
+
+**Why it cannot be fixed at auth time**: `resolvePartner` (OTP) has phone but no email. `resolvePartnerByEmail` (Google/FB) has email but no phone. No cross-search is possible without both identifiers.
+
+**Fix required in PROFILE feature** (`PATCH /api/v1/profile`):
+1. When an OTP user adds/confirms their email via the profile endpoint → call `odoo.write()` to set `res.partner.email`
+2. Before writing, run a deduplication check: `searchRead('res.partner', [['email', '=', newEmail]], ...)` — if another partner already has that email, **merge**: reassign all `laundry.order` records from the duplicate to the current partner, then archive the duplicate with `odoo.write(duplicateId, { active: false })`
+3. From that point on, subsequent Google/FB logins with that email will find the correct partner
+
+**Fix required in PROFILE feature** (`PATCH /api/v1/profile`) for OAuth users adding phone:
+1. When a Google/FB user adds their phone number → `odoo.write()` to set `res.partner.phone`
+2. Before writing, check if another partner has that phone → same merge logic as above
+
+**Guard already in place**: `resolvePartnerByEmail` skips empty emails (Facebook without email permission) — no partner is created with `email: ''`.
+
+**Action for Claude**: When starting the PROFILE feature, read this section first and implement the deduplication logic as the first task before building the profile read/update endpoints.
+
+---
+
 ### Steps completed
 | Step | Status | What was built |
 |------|--------|---------------|
