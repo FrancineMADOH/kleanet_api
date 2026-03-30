@@ -6,6 +6,7 @@ import redisPlugin from './plugins/redis';
 import authRoutes from './modules/auth/auth.routes';
 import catalogRoutes from './modules/catalog/catalog.routes';
 import ordersRoutes from './modules/orders/orders.routes';
+import appointmentsRoutes from './modules/appointments/appointments.routes';
 import { authGuard } from './shared/guards/auth.guard';
 
 /**
@@ -34,6 +35,7 @@ export function buildApp(): FastifyInstance {
   fastify.register(authRoutes, { prefix: '/api/v1/auth' });
   fastify.register(catalogRoutes, { prefix: '/api/v1/catalog' });
   fastify.register(ordersRoutes, { prefix: '/api/v1/orders' });
+  fastify.register(appointmentsRoutes, { prefix: '/api/v1/appointments' });
 
   // ----------------------------------------------------------------
   // Health check — used by load balancers and Docker health checks
