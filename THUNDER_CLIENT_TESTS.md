@@ -433,6 +433,55 @@ ou les deux :
 
 ---
 
+## FEEDBACK — Route protégée
+
+### 20. Soumettre un avis sur une commande livrée
+
+**POST** `http://localhost:3000/api/v1/feedback`
+
+- Auth : **Bearer token** requis
+- Body (JSON) :
+```json
+{
+  "order_id": 1,
+  "rating": 5,
+  "comment": "Service impeccable, livraison rapide !",
+  "would_recommend": true
+}
+```
+- Avec rating seulement (minimum) :
+```json
+{
+  "order_id": 1,
+  "rating": 4
+}
+```
+- Réponse `201 Created` :
+```json
+{
+  "id": 1,
+  "reference": "FBK/2026/00001",
+  "order_id": 1,
+  "rating": 5,
+  "would_recommend": true,
+  "comment": "Service impeccable, livraison rapide !",
+  "submitted_at": "2026-03-30T12:00:00.000Z"
+}
+```
+
+> Remplacer `order_id` par un id de commande avec `status: "delivered"` (obtenu via `GET /orders`).
+
+**Tests d'erreur à faire :**
+| Test | Résultat attendu |
+|------|-----------------|
+| Commande appartenant à un autre client | `403 FORBIDDEN` |
+| Commande en état `pending` ou `processing` | `400 ORDER_NOT_DELIVERED` |
+| 2ème POST sur la même commande | `409 ALREADY_REVIEWED` |
+| `rating: 6` | `400` (validation schéma) |
+| Sans token | `401 UNAUTHORIZED` |
+
+---
+
 ## Health Check
 
 **GET** `http://localhost:3000/ping`
@@ -465,3 +514,4 @@ ou les deux :
 | 17 | GET | `/api/v1/profile` | ✅ | Profile |
 | 18 | PATCH | `/api/v1/profile` | ✅ | Profile |
 | 19 | PATCH | `/api/v1/profile/location` | ✅ | Profile |
+| 20 | POST | `/api/v1/feedback` | ✅ | Feedback |
