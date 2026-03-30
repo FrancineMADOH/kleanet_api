@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { CatalogResponse, GarmentType, PricingRule, SubscriptionPlan } from './catalog.types';
+import { CACHE_KEY_FAQ } from '../faq/faq.service';
 
 // ----------------------------------------------------------------
 // Constants
@@ -126,8 +127,8 @@ export async function getPlans(fastify: FastifyInstance): Promise<SubscriptionPl
  * Idempotent — safe to call even when keys do not exist.
  */
 export async function invalidateCache(fastify: FastifyInstance): Promise<void> {
-  await fastify.redis.del(CACHE_KEY_SERVICES, CACHE_KEY_PLANS);
-  fastify.log.info('catalog cache invalidated');
+  await fastify.redis.del(CACHE_KEY_SERVICES, CACHE_KEY_PLANS, CACHE_KEY_FAQ);
+  fastify.log.info('catalog cache invalidated (services, plans, faq)');
 }
 
 // ----------------------------------------------------------------

@@ -140,9 +140,12 @@ Fastify API  ──── 1 seul compte de service Odoo ────▶ Odoo
 | ORDERS-01 | ✅ | `POST /api/v1/orders`, `GET /api/v1/orders`, `GET /api/v1/orders/:id` |
 | APPOINTMENTS-01 | ✅ | `POST /api/v1/appointments`, `GET /api/v1/appointments` — validations 2h + ownership |
 | SUBSCRIPTION-01 | ✅ | `GET /api/v1/subscription`, `POST /api/v1/subscription` — 409 ALREADY_SUBSCRIBED, 404 PLAN_NOT_FOUND |
+| PROFILE-01 | ✅ | `GET /api/v1/profile`, `PATCH /api/v1/profile`, `PATCH /api/v1/profile/location` — GPS + 409 DUPLICATE_ACCOUNT |
+| FEEDBACK-01 | ✅ | `POST /api/v1/feedback` — 403 ownership, 400 ORDER_NOT_DELIVERED, 409 ALREADY_REVIEWED |
+| FAQ-01 | ✅ | `GET /api/v1/faq` — public, cache Redis 1h, filtre `?category_id`, invalidé par DELETE /catalog/cache |
 
 ### Next step
-**PROFILE-01** — Consulter et mettre à jour le profil client (+ déduplication partenaires)
+**QUALITY-01** — Tests automatisés (Vitest)
 
 ### Key files
 ```

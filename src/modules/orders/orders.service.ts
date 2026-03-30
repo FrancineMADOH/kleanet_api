@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { OdooRecord } from '../../shared/odoo/odoo.types';
+import type { OdooRecord, OdooDomain } from '../../shared/odoo/odoo.types';
 import type {
   CreateOrderInput,
   ListOrdersQuery,
@@ -102,7 +102,7 @@ export async function listOrders(
   partnerId: number,
   query: ListOrdersQuery,
 ): Promise<OrderSummary[]> {
-  const domain: unknown[] = [['partner_id', '=', partnerId]];
+  const domain: OdooDomain = [['partner_id', '=', partnerId]];
 
   if (query.status) {
     domain.push(['state', '=', API_TO_ODOO_STATUS[query.status]]);

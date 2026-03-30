@@ -482,6 +482,53 @@ ou les deux :
 
 ---
 
+## FAQ — Route publique (pas de token)
+
+### 21. Lister les questions fréquentes
+
+**GET** `http://localhost:3000/api/v1/faq`
+
+- Auth : aucune
+- Réponse :
+```json
+[
+  {
+    "id": 1,
+    "reference": "FAQ/2026/00001",
+    "question": "Comment sont calculés les prix ?",
+    "answer": "Nous proposons deux modes de tarification...",
+    "category": { "id": 1, "name": "Tarifs & Prix" },
+    "sequence": 10
+  }
+]
+```
+> Le 2ème appel est servi depuis Redis (log "cache hit" dans le terminal).
+
+---
+
+### 21b. Filtrer par catégorie
+
+**GET** `http://localhost:3000/api/v1/faq?category_id=1`
+
+- Auth : aucune
+- Réponse : tableau filtré (uniquement les FAQs de la catégorie 1)
+
+> Utiliser un `id` de catégorie réel visible dans les réponses précédentes.
+
+---
+
+### 21c. Invalider le cache FAQ
+
+**DELETE** `http://localhost:3000/api/v1/catalog/cache`
+
+- Auth : **Bearer token** requis
+- Réponse : `{ "message": "Cache invalidated" }`
+- Log attendu : `catalog cache invalidated (services, plans, faq)`
+
+> Invalide également le cache FAQ — un appel `GET /faq` suivant retournera un cache miss.
+
+---
+
 ## Health Check
 
 **GET** `http://localhost:3000/ping`
@@ -515,3 +562,4 @@ ou les deux :
 | 18 | PATCH | `/api/v1/profile` | ✅ | Profile |
 | 19 | PATCH | `/api/v1/profile/location` | ✅ | Profile |
 | 20 | POST | `/api/v1/feedback` | ✅ | Feedback |
+| 21 | GET | `/api/v1/faq` | ❌ | FAQ |
